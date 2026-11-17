@@ -40,7 +40,7 @@ psync still speaks Git: `psync git import` brings history in, and
 
 ## Install
 
-psync is a single binary with no runtime dependencies. You need Rust 1.89
+psync is a single binary with no runtime dependencies. You need Rust 1.90
 or newer:
 
 ```sh
