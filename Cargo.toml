@@ -1,0 +1,25 @@
+[workspace]
+resolver = "2"
+members = ["crates/psync-core", "crates/psync-cli"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.89"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+blake3 = "1"
+notify = "8"
+tempfile = "3"
+tree-sitter = "0.25"
+tree-sitter-go = "0.25"
+tree-sitter-javascript = "0.25"
+tree-sitter-python = "0.25"
+tree-sitter-rust = "0.24"
+tree-sitter-typescript = "0.23"
+zstd = "0.13"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
