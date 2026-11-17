@@ -44,10 +44,11 @@ psync is a single binary with no runtime dependencies. You need Rust 1.89
 or newer:
 
 ```sh
-git clone <this repository> psync && cd psync
-cargo install --path crates/progsync-cli      # installs `psync` into ~/.cargo/bin
+cargo install --git https://github.com/shyble/progsync progsync-cli   # installs `psync` into ~/.cargo/bin
 psync --version
 ```
+
+Or from a clone: `cargo install --path crates/progsync-cli`.
 
 ## Quick start
 
