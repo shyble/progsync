@@ -1,9 +1,16 @@
-# psync
+# progsync
 
-Version control built for AI agents. Git-like commands, no staging area,
-a workspace per agent, a shared `main` that work lands on after checks pass,
-non-blocking conflicts, everything undoable, structured change metadata with
-owner + agent identity, and `--json` on every command.
+**psync: progress sync for AI agents.** Several agents work on one project
+at once, and psync keeps their progress in step: tasks with acceptance
+checks, claims on the files each agent is working on, a shared `main` that
+work only lands on after its check passes, and a full, undoable history of
+who did what and why.
+
+Underneath it is version control built for agents: Git-like commands, no
+staging area, a workspace per agent, non-blocking conflicts, structured
+change metadata with owner + agent identity, and `--json` on every command.
+
+The project is called progsync; the command is `psync`.
 
 ## Why not Git?
 
@@ -38,7 +45,7 @@ or newer:
 
 ```sh
 git clone <this repository> psync && cd psync
-cargo install --path crates/psync-cli      # installs `psync` into ~/.cargo/bin
+cargo install --path crates/progsync-cli      # installs `psync` into ~/.cargo/bin
 psync --version
 ```
 

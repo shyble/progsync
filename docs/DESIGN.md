@@ -1,7 +1,10 @@
 # psync design
 
-psync is a standalone version control system built for AI agents (and the
-humans working with them) contributing to the same project in parallel. It is
+psync ("progress sync"; the project is named progsync) is a standalone
+version control system built for AI agents (and the humans working with
+them) contributing to the same project in parallel. It manages progress,
+not only files: tasks, claims and checked landings decide what reaches
+`main`, and every change records who made it and why. It is
 agent-agnostic: any agent that can run a CLI and read JSON can use it.
 This document is about how psync works; [USAGE.md](USAGE.md) is about how
 to use it.

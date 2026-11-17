@@ -291,15 +291,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "psync-cli"
+name = "progsync-cli"
 version = "0.1.0"
 dependencies = [
- "psync-core",
+ "progsync-core",
  "tempfile",
 ]
 
 [[package]]
-name = "psync-core"
+name = "progsync-core"
 version = "0.1.0"
 dependencies = [
  "blake3",

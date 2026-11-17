@@ -1,0 +1,17 @@
+[package]
+name = "progsync-cli"
+description = "psync: progress sync and version control for AI agents (command-line tool)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "psync"
+path = "src/main.rs"
+
+[dependencies]
+progsync-core = { path = "../progsync-core" }
+
+[dev-dependencies]
+tempfile.workspace = true
