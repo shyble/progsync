@@ -5,8 +5,41 @@ a workspace per agent, a shared `main` that work lands on after checks pass,
 non-blocking conflicts, everything undoable, structured change metadata with
 owner + agent identity, and `--json` on every command.
 
+## Why not Git?
+
+Git was designed for people who coordinate by talking to each other. When
+several agents edit one repository at once, the gaps show:
+
+- **Staging and dirty trees.** Agents forget `git add`, or commit someone
+  else's half-done edits. In psync your files *are* your working change:
+  nothing to stage, nothing lost.
+- **One checkout, many writers.** Agents in the same folder overwrite each
+  other. psync gives each agent its own workspace (cloned copy-on-write, so
+  it is cheap) and a shared `main` that work only reaches after a check
+  passes.
+- **Conflicts stop the agent.** A Git merge conflict halts the run until
+  someone fixes it. psync records conflicts and carries on; source files
+  merge declaration by declaration, so two agents adding functions to one
+  file don't conflict at all.
+- **Who did this, and why?** Every psync change records the owner *and* the
+  agent, plus the task and any metadata you attach (model, prompt, run id).
+- **Mistakes are cheap.** Every operation goes into a log; `psync undo`
+  steps back through it, and never undoes another agent's work.
+- **Built to be driven by programs.** `--json` on every command, structured
+  errors, an MCP server, and an HTTP API.
+
+psync still speaks Git: `psync git import` brings history in, and
+`psync git export` writes it back out.
+
+## Install
+
+psync is a single binary with no runtime dependencies. You need Rust 1.89
+or newer:
+
 ```sh
-cargo build --release          # binary: target/release/psync
+git clone <this repository> psync && cd psync
+cargo install --path crates/psync-cli      # installs `psync` into ~/.cargo/bin
+psync --version
 ```
 
 ## Quick start
@@ -66,8 +99,16 @@ are `{"ok": false, "error": ...}` with exit 1), and set `PSYNC_AGENT`. Or
 connect over MCP: `claude mcp add psync -- psync mcp`. See
 [For agents](docs/USAGE.md#for-agents).
 
-Platforms: tested on macOS, and on Linux (the test suite, in Docker). Windows
-builds (cross-compiled) but is untested on real Windows.
+## Status
+
+psync is young (version 0.1). It manages its own development and the test
+suite covers every command, but the on-disk format may still change before
+1.0. Keep a Git export of anything important (`psync git export`).
+
+Platforms: tested on macOS and Linux. Windows builds (cross-compiled) but is
+untested on real Windows.
+
+Issues and pull requests are welcome.
 
 ## License
 
