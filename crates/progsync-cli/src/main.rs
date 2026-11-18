@@ -5,6 +5,7 @@ mod mcp;
 use progsync_core::bail;
 use progsync_core::error::Result;
 use progsync_core::config;
+use progsync_core::localtime;
 use progsync_core::coord::{parse_ttl, TaskDone, TaskEdit, TaskInfo};
 use progsync_core::diff::{self, FileChange};
 use progsync_core::repo::{overlap_map, LandResult, Status, SyncOutcome};
@@ -1038,7 +1039,7 @@ fn run(cli: Cli) -> Result<Out> {
             if r.committer != r.author {
                 text.push_str(&format!("Committer {}\n", r.committer.full()));
             }
-            text.push_str(&format!("Updated   {} ({})\n", rfc3339(r.updated_ms), relative(r.updated_ms)));
+            text.push_str(&format!("Updated   {} ({})\n", localtime::format(r.updated_ms, true), relative(r.updated_ms)));
             if let Some(t) = &r.meta.task {
                 text.push_str(&format!("Task      {t}\n"));
             }
@@ -1487,7 +1488,7 @@ fn log_block(repo: &Repo, h: &Hash, rev: &Revision, marker: &str, labels: &str, 
     if rev.committer != rev.author {
         field("Committer", &rev.committer.full());
     }
-    field("Date", &format!("{} UTC ({})", rfc3339(rev.updated_ms)[..16].replacen('T', " ", 1), relative(rev.updated_ms)));
+    field("Date", &format!("{} ({})", localtime::format(rev.updated_ms, false), relative(rev.updated_ms)));
     if let Some(t) = &rev.meta.task {
         let title = repo.task(t).map(|i| format!(" {}", i.task.title)).unwrap_or_default();
         field("Task", &format!("{}{title}", paint("1", t)));

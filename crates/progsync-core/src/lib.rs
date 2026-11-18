@@ -29,6 +29,7 @@ pub mod bin;
 pub mod chunk;
 pub mod eol;
 pub mod lines;
+pub mod localtime;
 pub mod msgcheck;
 pub mod queue;
 pub mod config;

@@ -483,7 +483,9 @@ Global flags: `--json`, `--agent <id>` (or `PSYNC_AGENT`), `-C <path>`.
 - Finish work with `psync commit -m ...` then `psync land`. If land reports
   conflicts or a failed check (`"ok": false`, exit 1), fix, commit, land again.
 - Always pass `--json`. Success: `{"ok": true, ...}`. Failure:
-  `{"ok": false, "error": "..."}` with exit code 1.
+  `{"ok": false, "error": "..."}` with exit code 1. Times in JSON are
+  RFC 3339 UTC; text output shows local time with its offset
+  (`2026-11-18 12:21 +03:00`, from `TZ` or the system's zone).
 - Set `PSYNC_AGENT` so your changes and operations are attributed to you.
 - Write the *intent* of a change in `-m`, attach the task with `--task`, and
   put anything else (model, session, test results) in `--meta key=value`.

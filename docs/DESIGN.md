@@ -723,6 +723,7 @@ and as revisions (`claude-1@laptop`) for `diff`, `merge`, `switch`.
 | T-37 | `status --ignored`, `check-ignore` (rule file:line), `commit.max_file_mb` guard | done |
 | T-38 | `archive`: reproducible ustar/pax tar of a revision, revision hash as pax comment | done |
 | T-45 | `log --long` (`-l`): expanded view with author, date, task, checks, files, full intent | done |
+| T-46 | Local time in text output (`log -l`, `show`): TZif + POSIX TZ rules, Windows system call; JSON stays UTC | done |
 
 The rest of the roadmap is tracked as psync tasks in psync's own repository
 (`psync task list`).
