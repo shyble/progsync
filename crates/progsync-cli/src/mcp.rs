@@ -93,6 +93,7 @@ static TOOLS: &[Tool] = &[
         props: &[
             p("limit", Arg::Opt("--limit"), "integer", "Maximum number of changes (default 20)"),
             p("all", Arg::Switch("--all"), "boolean", "Include every workspace's history"),
+            p("long", Arg::Switch("--long"), "boolean", "Also list each change's changed files with line counts"),
         ],
         required: &[],
     },

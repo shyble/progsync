@@ -51,6 +51,8 @@ enum Cmd {
         limit: usize,
         /// Include every workspace's history
         all: bool,
+        /// One block per change: author, date, task, checks, files, full intent
+        long: bool,
     },
     /// Show a change: metadata and diff
     Show {
@@ -365,7 +367,8 @@ fn spec() -> args::Cmd {
             .arg(Arg::opt("rev").short('r').default("@").help("The change to describe: @, or one of your committed changes not yet on main")))
         .sub(C::new("log", "Show change history")
             .arg(Arg::opt("limit").short('n').default("20"))
-            .arg(Arg::flag("all").help("Include every workspace's history")))
+            .arg(Arg::flag("all").help("Include every workspace's history"))
+            .arg(Arg::flag("long").short('l').help("Expanded view: author, date, task, checks, files and the full intent of each change")))
         .sub(C::new("show", "Show a change: metadata and diff")
             .arg(Arg::pos("rev").default("@"))
             .arg(Arg::flag("stat").help("Only list files with line counts")))
@@ -517,7 +520,7 @@ fn build(m: &args::Matches) -> Result<Cmd, args::Error> {
         ["check-ignore"] => Cmd::CheckIgnore { paths: m.all("paths") },
         ["commit"] => Cmd::Commit(CommitArgs { meta: meta()?, paths: m.all("paths"), allow_large: m.flag("allow_large") }),
         ["describe"] => Cmd::Describe { meta: meta()?, rev: m.req("rev") },
-        ["log"] => Cmd::Log { limit: num("limit")?, all: m.flag("all") },
+        ["log"] => Cmd::Log { limit: num("limit")?, all: m.flag("all"), long: m.flag("long") },
         ["show"] => Cmd::Show { rev: m.req("rev"), stat: m.flag("stat") },
         ["diff"] => Cmd::Diff { rev: m.req("rev"), stat: m.flag("stat"), name_only: m.flag("name_only") },
         ["sync"] => Cmd::Sync,
@@ -1020,7 +1023,7 @@ fn run(cli: Cli) -> Result<Out> {
                 ),
             })
         }
-        Cmd::Log { limit, all } => log(&repo, limit, all),
+        Cmd::Log { limit, all, long } => log(&repo, limit, all, long),
         Cmd::Show { rev, stat } => {
             let h = repo.resolve(&rev)?;
             let r = repo.store.get_revision(&h)?;
@@ -1425,7 +1428,7 @@ fn status(repo: &Repo, st: &Status) -> Result<Out> {
     })
 }
 
-fn log(repo: &Repo, limit: usize, all: bool) -> Result<Out> {
+fn log(repo: &Repo, limit: usize, all: bool, long: bool) -> Result<Out> {
     let heads: std::collections::HashMap<Hash, Vec<String>> = {
         let mut m: std::collections::HashMap<Hash, Vec<String>> = std::collections::HashMap::new();
         let view = repo.view()?;
@@ -1440,11 +1443,21 @@ fn log(repo: &Repo, limit: usize, all: bool) -> Result<Out> {
     let revs = if all { repo.log_all(limit)? } else { repo.log(repo.working()?.0, limit)? };
     let mut text = String::new();
     let mut list = Vec::new();
-    for (h, rev) in &revs {
+    for (i, (h, rev)) in revs.iter().enumerate() {
         let ws = heads.get(h).cloned().unwrap_or_default();
         let mine = ws.iter().any(|w| *w == format!("{}@", repo.workspace()));
         let marker = if mine { "@" } else if ws.iter().any(|w| w.ends_with('@')) { "◎" } else { "○" };
         let ws_label = if ws.is_empty() { String::new() } else { format!(" {}", paint("36", &format!("[{}]", ws.join(", ")))) };
+        if long {
+            let last = i + 1 == revs.len();
+            let (block, files) = log_block(repo, h, rev, marker, &ws_label, last)?;
+            text.push_str(&block);
+            let mut v = rev_json(h, rev);
+            v["labels"] = json!(ws);
+            v["files"] = json!(files);
+            list.push(v);
+            continue;
+        }
         let task = rev.meta.task.as_ref().map(|t| format!(" [{t}]")).unwrap_or_default();
         text.push_str(&format!(
             "{marker} {} {} {} {}  {}{task}{ws_label}\n",
@@ -1459,6 +1472,89 @@ fn log(repo: &Repo, limit: usize, all: bool) -> Result<Out> {
         list.push(v);
     }
     Ok(Out { json: json!({ "revisions": list }), text })
+}
+
+/// Files listed per change in `log --long`.
+const LOG_FILES: usize = 10;
+
+/// One change of `log --long`: a header line, then its details and full
+/// intent behind a rail (`│`) that leads to the next change.
+fn log_block(repo: &Repo, h: &Hash, rev: &Revision, marker: &str, labels: &str, last: bool) -> Result<(String, Vec<Value>)> {
+    let rail = if last { "  ".to_string() } else { format!("{} ", c_dim("│")) };
+    let mut out = format!("{marker} {} {}{labels}\n", short_id(rev), c_hash(&h.short()[..8]));
+    let mut field = |name: &str, value: &str| out.push_str(&format!("{rail}{}  {value}\n", c_dim(&format!("{name:<9}"))));
+    field("Author", &rev.author.full());
+    if rev.committer != rev.author {
+        field("Committer", &rev.committer.full());
+    }
+    field("Date", &format!("{} UTC ({})", rfc3339(rev.updated_ms)[..16].replacen('T', " ", 1), relative(rev.updated_ms)));
+    if let Some(t) = &rev.meta.task {
+        let title = repo.task(t).map(|i| format!(" {}", i.task.title)).unwrap_or_default();
+        field("Task", &format!("{}{title}", paint("1", t)));
+    }
+    for (k, v) in &rev.meta.extra {
+        field(k, v);
+    }
+    for c in &rev.meta.checks {
+        let stale = if c.tree == rev.tree { String::new() } else { c_warn(" (tree has changed since)") };
+        let verdict = if c.passed { paint("32", "passed") } else { paint("31", "failed") };
+        field("Check", &format!("{verdict} `{}` in {:.1}s by {}{stale}", c.command, c.duration_ms as f64 / 1000.0, c.by.short()));
+    }
+    let changes = repo.changes_of(rev)?;
+    let (files, files_text) = files_out(repo, &changes, false)?;
+    if !files.is_empty() {
+        let sum = |k: &str| files.iter().filter_map(|f| f[k].as_u64()).sum::<u64>();
+        let totals = format!("{}{}", paint("32", &format!("+{}", sum("added"))), paint("31", &format!(" -{}", sum("removed"))));
+        field("Files", &format!("{}  {totals}", plural(files.len(), "file")));
+        for l in files_text.lines().take(LOG_FILES) {
+            out.push_str(&format!("{rail}         {l}\n"));
+        }
+        if files.len() > LOG_FILES {
+            out.push_str(&format!("{rail}           {}\n", c_dim(&format!("… {} more", files.len() - LOG_FILES))));
+        }
+    }
+    let blank = format!("{}\n", rail.trim_end());
+    out.push_str(&blank);
+    if rev.meta.intent.is_empty() {
+        out.push_str(&format!("{rail}    {}\n", c_dim("(no intent)")));
+    } else {
+        for l in rev.meta.intent.lines() {
+            if l.trim().is_empty() {
+                out.push_str(&blank);
+                continue;
+            }
+            for w in wrap(l, INTENT_WIDTH) {
+                out.push_str(&format!("{rail}    {}\n", paint("1", &w)));
+            }
+        }
+    }
+    if !last {
+        out.push_str(&blank);
+    }
+    Ok((out, files))
+}
+
+/// Intent lines in `log --long` wrap at this many characters.
+const INTENT_WIDTH: usize = 72;
+
+/// Word-wrap `line` at `width` characters (a longer word gets its own line),
+/// keeping its leading indentation on the first piece.
+fn wrap(line: &str, width: usize) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    let indent = &line[..line.len() - line.trim_start().len()];
+    let mut cur = indent.to_string();
+    for word in line.split_whitespace() {
+        let n = cur.chars().count();
+        if n > indent.len() && n + 1 + word.chars().count() > width {
+            out.push(std::mem::take(&mut cur));
+        }
+        if !cur.is_empty() && !cur.ends_with(' ') {
+            cur.push(' ');
+        }
+        cur.push_str(word);
+    }
+    out.push(cur);
+    out
 }
 
 const MAX_LISTED: usize = 50;

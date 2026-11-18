@@ -29,7 +29,7 @@ psync commit -m "Project skeleton"
 # ...edit files; no `add` needed...
 psync status                                # working change (@) and changed files
 psync commit -m "Add rate limiting" --task T-14 --meta model=opus-5.5
-psync log
+psync log                                   # one line per change; --long (-l) for a readable expanded view
 psync show @-                               # metadata + diff of the previous change
 psync undo                                  # undo the last operation (repeatable)
 ```
@@ -436,7 +436,7 @@ Anywhere a command takes a revision:
 | `check-ignore <paths...>` | whether each path is ignored, and by which rule (file:line pattern) |
 | `commit -m <intent> [--task T] [--meta k=v] [--allow-large] [paths]` | finish `@` (or only `paths`), start a new working change |
 | `describe -m/--task/--meta [-r REV]` | edit `@`'s metadata without finishing it (or a committed change not yet on main) |
-| `log [-n N] [--all]` | history (this workspace, or all) |
+| `log [-n N] [--all] [-l]` | history (this workspace, or all); `-l`: author, date, task, checks, files, full intent |
 | `show [rev] [--stat]` | one change with diff |
 | `diff [rev] [--stat] [--name-only]` | changes introduced by a change |
 | `context [-n N]` | briefing: your work, main (ahead/behind), other workspaces, overlaps |

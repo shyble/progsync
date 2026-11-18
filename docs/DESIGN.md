@@ -722,6 +722,7 @@ and as revisions (`claude-1@laptop`) for `diff`, `merge`, `switch`.
 | T-36 | `id`: last commit and dirty state, no operation, no lock | done |
 | T-37 | `status --ignored`, `check-ignore` (rule file:line), `commit.max_file_mb` guard | done |
 | T-38 | `archive`: reproducible ustar/pax tar of a revision, revision hash as pax comment | done |
+| T-45 | `log --long` (`-l`): expanded view with author, date, task, checks, files, full intent | done |
 
 The rest of the roadmap is tracked as psync tasks in psync's own repository
 (`psync task list`).
