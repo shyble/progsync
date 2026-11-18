@@ -179,8 +179,14 @@ fn ignored_directories_are_not_watched_or_recorded() {
         let st = watch::status(&ws_dir).unwrap();
         assert_eq!(st.paths, before, "per_directory={per_directory}");
         // Watching the whole tree, the events arrive and are dropped; watching
-        // directory by directory, they never arrive.
-        assert_eq!(st.ignored > 0, !per_directory, "{} ignored events", st.ignored);
+        // directory by directory natively (inotify), they never arrive. Forced
+        // on macOS, FSEvents restarted per watch may still let one through
+        // (dropped all the same: `paths` above is unchanged).
+        if !per_directory {
+            assert!(st.ignored > 0, "whole tree: the events arrive and are dropped");
+        } else if native {
+            assert_eq!(st.ignored, 0, "per directory: ignored directories are not watched");
+        }
 
         // New directories are followed, however deep, and seen at once.
         write(&root, "src/new/deep/b.rs", "b\n");
